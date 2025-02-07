@@ -31,14 +31,3 @@ This project is an Bluetooth app what is uset to communicate with a esp32 board.
 2. Search for and connect to the ESP32 device.
 3. Use the app to send and receive data.
 
-## Contributions
-
-Contributions are welcome! Please open a pull request or report issues in the Issues section.
-
-## License
-
-This project is licensed under the MIT License. See the LICENSE file for more details.
-
-## Expo
-
-The application can be run in Expo after a development build is made.
