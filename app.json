@@ -1,28 +1,56 @@
 {
-  "expo": {
-    "name": "ESP32-BluetoothApp",
-    "slug": "ESP32-BluetoothApp",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
-  }
+	"expo": {
+		"name": "ESP32-BluetoothApp",
+		"slug": "ESP32-BluetoothApp",
+		"version": "1.0.0",
+		"orientation": "portrait",
+		"icon": "./assets/images/icon.png",
+		"userInterfaceStyle": "light",
+		"newArchEnabled": true,
+		"splash": {
+			"image": "./assets/images/splash-icon.png",
+			"resizeMode": "contain",
+			"backgroundColor": "#ffffff"
+		},
+		"ios": {
+			"supportsTablet": true
+		},
+		"android": {
+			"adaptiveIcon": {
+				"foregroundImage": "./assets/images/adaptive-icon.png",
+				"backgroundColor": "#ffffff"
+			},
+			"permissions": [
+				"BLUETOOTH",
+				"BLUETOOTH_ADMIN",
+				"ACCESS_FINE_LOCATION",
+				"BLUETOOTH_SCAN",
+				"BLUETOOTH_CONNECT"
+			],
+			"package": "com.gabiapg.ESP32BluetoothApp"
+		},
+		"web": {
+			"favicon": "./assets/favicon.png"
+		},
+		"extra": {
+			"eas": {
+				"projectId": "c7941788-acd7-4fab-bd78-2552822a3b51"
+			}
+		},
+		"plugins": [
+			[
+				"react-native-ble-manager",
+				{
+					"isBackgroundEnabled": true,
+					"companionDeviceEnabled": true,
+					"isBleRequired": true,
+					"modes": ["peripheral", "central"],
+					"bluetoothAlwaysPermission": "Allow $(PRODUCT_NAME) to connect to bluetooth devices",
+					"bluetoothPeripheralUsageDescription": "This app uses Bluetooth to communicate with external devices.",
+					"backgroundModes": ["bluetooth-central", "bluetooth-peripheral"]
+				}
+			],
+			"expo-router"
+		]
+	}
 }
