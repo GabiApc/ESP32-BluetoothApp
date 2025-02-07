@@ -1,10 +1,11 @@
 # ESP32 Bluetooth App
 
-This project is an application for ESP32 that uses Bluetooth to communicate with other devices.
+This project is an Bluetooth app what is uset to communicate with a esp32 board.
 
 ## Features
 
-- Connect to other Bluetooth devices
+- Connect to ESP32 Bluetooth devices
+- Set Wifi credentialls
 - Send and receive data
 - Easy-to-use interface
 
