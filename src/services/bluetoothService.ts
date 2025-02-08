@@ -1,124 +1,108 @@
-import {
-	NativeEventEmitter,
-	NativeModules,
-	PermissionsAndroid,
-	Platform,
-} from 'react-native';
 import BleManager, {
 	BleScanCallbackType,
 	BleScanMatchMode,
 	BleScanMode,
 	Peripheral,
+	BleDisconnectPeripheralEvent,
+	BleManagerDidUpdateValueForCharacteristicEvent,
 } from 'react-native-ble-manager';
-import { useBluetooth } from '../context/BluetoothContext';
+import { useState, useEffect } from 'react';
+import { Platform, PermissionsAndroid } from 'react-native';
 
 const SECONDS_TO_SCAN_FOR = 3;
 const SERVICE_UUIDS: string[] = [];
 const ALLOW_DUPLICATES = true;
 
-const BleManagerModule = NativeModules.BleManager;
-const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
+export const useBluetooth = () => {
+	const [isScanning, setIsScanning] = useState(false);
+	const [peripherals, setPeripherals] = useState(
+		new Map<Peripheral['id'], Peripheral>()
+	);
 
-// Start BLE Manager
-export const startBleManager = async () => {
-	try {
-		await BleManager.start({ showAlert: false });
-		console.debug('BleManager started.');
-	} catch (error) {
-		console.error('BleManager could not be started.', error);
-	}
-};
-
-bleManagerEmitter.addListener('BleManagerStopScan', () => {
-	console.debug('[GLOBAL] BleManagerStopScan event received.');
-});
-
-// Enable Bluetooth
-export const enableBluetooth = async () => {
-	try {
-		await BleManager.enableBluetooth();
-		console.debug('Bluetooth enabled.');
-	} catch (error) {
-		console.error('Failed to enable Bluetooth.', error);
-	}
-};
-
-export const stopScan = (dispatch: React.Dispatch<any>, navigation: any) => {
-	console.debug('[stopScan] Stopping scan...');
-
-	dispatch({ type: 'SET_SCANNING', isScanning: false });
-
-	setTimeout(() => {
-		navigation.navigate('AvailableDevices');
-	}, 500); // Adăugăm un mic delay pentru siguranță
-};
-
-// Start scanning for devices
-export const startScan = async (dispatch: React.Dispatch<any>) => {
-	console.debug('[startScan] Starting BLE scan...');
-	dispatch({ type: 'SET_SCANNING', isScanning: true });
-	dispatch({ type: 'RESET_PERIPHERALS' });
-
-	try {
-		await BleManager.scan([], 5, true, {
-			matchMode: BleScanMatchMode.Sticky,
-			scanMode: BleScanMode.LowLatency,
-			callbackType: BleScanCallbackType.AllMatches,
-		});
-		console.debug('[startScan] Scan started successfully.');
-	} catch (error) {
-		console.error('[startScan] Scan error:', error);
-		dispatch({ type: 'SET_SCANNING', isScanning: false });
-	}
-};
-
-// Funcție care adaugă dispozitivul în state-ul global
-export const handleDiscoverPeripheral = (
-	peripheral: Peripheral,
-	dispatch: React.Dispatch<any>
-) => {
-	if (!peripheral.name) peripheral.name = 'Unknown';
-
-	dispatch({ type: 'ADD_PERIPHERAL', peripheral });
-};
-
-// Handle permissions for Android
-export const handleAndroidPermissions = async () => {
-	if (Platform.OS === 'android' && Platform.Version >= 31) {
-		const result = await PermissionsAndroid.requestMultiple([
-			PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-			PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-		]);
-		if (result) {
-			console.debug(
-				'[handleAndroidPermissions] Permissions granted (Android 12+)'
-			);
-		} else {
-			console.error(
-				'[handleAndroidPermissions] Permissions denied (Android 12+)'
-			);
-		}
-	} else if (Platform.OS === 'android' && Platform.Version >= 23) {
-		const checkResult = await PermissionsAndroid.check(
-			PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+	useEffect(() => {
+		BleManager.start({ showAlert: true }).catch((error) =>
+			console.error('BleManager could not be started.', error)
 		);
-		if (checkResult) {
-			console.debug(
-				'[handleAndroidPermissions] Permissions already granted (Android <12)'
-			);
-		} else {
-			const requestResult = await PermissionsAndroid.request(
-				PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-			);
-			if (requestResult) {
-				console.debug(
-					'[handleAndroidPermissions] User accepted location permission'
+		handleAndroidPermissions();
+
+		const listeners = [
+			BleManager.onDiscoverPeripheral(handleDiscoverPeripheral),
+			BleManager.onStopScan(handleStopScan),
+			// BleManager.onDisconnectPeripheral(handleDisconnectedPeripheral),
+		];
+		return () => {
+			listeners.forEach((listener) => listener.remove());
+		};
+	}, []);
+
+	const handleDiscoverPeripheral = (peripheral: Peripheral) => {
+		// console.log('Peripheral descoperit:', peripheral);
+		if (!peripheral.name) {
+			peripheral.name = 'NO NAME';
+		}
+		setPeripherals((map) => new Map(map.set(peripheral.id, peripheral)));
+	};
+
+	const handleStopScan = () => {
+		setIsScanning(false);
+	};
+
+	// const handleDisconnectedPeripheral = (
+	// 	event: BleDisconnectPeripheralEvent
+	// ) => {
+	// 	setPeripherals((map) => {
+	// 		let p = map.get(event.peripheral);
+	// 		if (p) {
+	// 			p.connected = false;
+	// 			return new Map(map.set(event.peripheral, p));
+	// 		}
+	// 		return map;
+	// 	});
+	// };
+
+	const startScan = () => {
+		if (!isScanning) {
+			setPeripherals(new Map<Peripheral['id'], Peripheral>());
+			setIsScanning(true);
+			BleManager.scan(SERVICE_UUIDS, SECONDS_TO_SCAN_FOR, ALLOW_DUPLICATES, {
+				matchMode: BleScanMatchMode.Aggressive, // Detectează dispozitive mai rapid
+				scanMode: BleScanMode.Balanced, // Economie de energie, dar mai puțin rapid decât HighLatency
+				callbackType: BleScanCallbackType.AllMatches,
+			})
+				.then(() => console.log('Scanare începută...'))
+				.catch((err) => console.error('Eroare scanare BLE:', err));
+		}
+	};
+
+	const handleAndroidPermissions = async () => {
+		if (Platform.OS === 'android') {
+			if (Platform.Version >= 31) {
+				// Pentru Android 12+ (API 31+)
+				const granted = await PermissionsAndroid.requestMultiple([
+					PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+					PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+					PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+				]);
+				if (
+					granted['android.permission.BLUETOOTH_SCAN'] !== 'granted' ||
+					granted['android.permission.BLUETOOTH_CONNECT'] !== 'granted' ||
+					granted['android.permission.ACCESS_FINE_LOCATION'] !== 'granted'
+				) {
+					console.error(
+						'Permisiunile Bluetooth și locație nu au fost acordate.'
+					);
+				}
+			} else if (Platform.Version >= 23) {
+				// Pentru Android 6 - 11
+				const granted = await PermissionsAndroid.request(
+					PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
 				);
-			} else {
-				console.error(
-					'[handleAndroidPermissions] User denied location permission'
-				);
+				if (granted !== 'granted') {
+					console.error('Permisiunea de locație nu a fost acordată.');
+				}
 			}
 		}
-	}
+	};
+
+	return { isScanning, peripherals, startScan };
 };

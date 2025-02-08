@@ -1,84 +1,47 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
 	View,
-	PermissionsAndroid,
-	Platform,
-	NativeEventEmitter,
-	NativeModules,
 	StatusBar,
 	StyleSheet,
+	Pressable,
+	FlatList,
+	Alert,
 } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { useTheme } from 'styled-components';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import BleManager, {
-	BleDisconnectPeripheralEvent,
-	BleManagerDidUpdateValueForCharacteristicEvent,
-	BleScanCallbackType,
-	BleScanMatchMode,
-	BleScanMode,
-	Peripheral,
-	PeripheralInfo,
-} from 'react-native-ble-manager';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
-import {
-	handleAndroidPermissions,
-	handleDiscoverPeripheral,
-	startBleManager,
-	startScan,
-	stopScan,
-} from '../services/bluetoothService';
-import { useBluetooth } from '../context/BluetoothContext';
+import { useBluetooth } from '../services/bluetoothService';
+import AvailableDevicesModal, {
+	SwipeableModalRef,
+} from '../components/AvailableDevicesModal';
+import { Peripheral } from 'react-native-ble-manager';
+import SearchButton from '../components/SearchButton';
+// import { useBluetooth } from '../context/BluetoothContext';
 
-declare module 'react-native-ble-manager' {
-	// enrich local contract with custom state properties needed by App.tsx
-	interface Peripheral {
-		connected?: boolean;
-		connecting?: boolean;
-	}
-}
-type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
-const BleManagerModule = NativeModules.BleManager;
-const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 const HomeScreen = () => {
 	const theme = useTheme();
 	const colors = theme.colors;
-	const [isScanning, setIsScanning] = useState(false);
-	const { state, dispatch } = useBluetooth(); // Preluăm `dispatch` corect
 
-	const navigation = useNavigation<HomeScreenNavigationProp>();
+	const { isScanning, peripherals, startScan } = useBluetooth();
 
-	useEffect(() => {
-		handleAndroidPermissions();
+	const modalRef = useRef<SwipeableModalRef>(null);
+	const [devices, setDevices] = useState<Peripheral[]>([]);
 
-		BleManager.start({ showAlert: false }).then(() => {
-			console.debug('BleManager started.');
-		});
+	const handleScan = () => {
+		startScan();
+		setTimeout(() => {
+			setDevices(Array.from(peripherals.values())); // Salvăm dispozitivele în state
+			modalRef.current?.show();
+		}, 4000); // Afișăm modalul după scanare
+	};
 
-		// Adăugăm evenimentul de descoperire
-		const discoverListener = bleManagerEmitter.addListener(
-			'BleManagerDiscoverPeripheral',
-			(peripheral: Peripheral) => {
-				handleDiscoverPeripheral(peripheral, dispatch);
-			}
+	const handleSelectDevice = (device: Peripheral) => {
+		Alert.alert(
+			'Dispozitiv selectat',
+			`Ai selectat ${device.name || 'Unknown Device'}`
 		);
-
-		// Adăugăm evenimentul pentru oprirea scanării
-		const stopScanListener = bleManagerEmitter.addListener(
-			'BleManagerStopScan',
-			() => {
-				console.debug('[BleManagerStopScan] Scan has stopped.');
-				stopScan(dispatch, navigation);
-			}
-		);
-
-		return () => {
-			discoverListener.remove();
-			stopScanListener.remove();
-		};
-	}, []);
+		modalRef.current?.hide();
+	};
 
 	const styles = StyleSheet.create({
 		container: {
@@ -107,6 +70,32 @@ const HomeScreen = () => {
 			marginTop: 20,
 			marginHorizontal: 15,
 		},
+		modalContainer: {
+			flex: 1,
+			justifyContent: 'center',
+			alignItems: 'center',
+			backgroundColor: colors.primary,
+		},
+		modalTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
+		deviceItem: { padding: 10, borderBottomWidth: 1 },
+		closeButton: { backgroundColor: '#ff0000', padding: 15, marginTop: 20 },
+		closeButtonText: { color: 'white', fontSize: 16 },
+		circle: {
+			width: 120,
+			height: 120,
+			borderRadius: 60, // Cercul perfect
+			backgroundColor: '#b4fa4f', // Verde luminos
+			justifyContent: 'center',
+			alignItems: 'center',
+			shadowColor: '#ffffff', // Umbra albă
+			shadowOffset: {
+				width: 0,
+				height: 0, // Umbra difuză fără deplasare
+			},
+			shadowOpacity: 1, // Opacitate maximă pentru a fi foarte vizibilă
+			shadowRadius: 40, // Rază mare pentru a face strălucirea puternică
+			elevation: 20, // Intensitate mare pentru Android
+		},
 	});
 
 	return (
@@ -118,23 +107,35 @@ const HomeScreen = () => {
 					Fii sigur că gateway-ul este activ pentru a apărea în lista de
 					dispozitive.
 				</Text>
-				<View
-					style={{
-						position: 'absolute',
-						height: '100%',
-						width: '100%',
-						justifyContent: 'center',
-						alignItems: 'center',
-					}}>
-					<IconButton
-						mode='contained'
-						containerColor={colors.secondary}
-						iconColor={colors.textSecondary}
-						icon='bluetooth'
-						size={95}
-						onPress={() => startScan(dispatch)}
-					/>
-				</View>
+				{isScanning ? (
+					<SearchButton />
+				) : (
+					<View
+						style={{
+							position: 'absolute',
+							height: '100%',
+							width: '100%',
+							justifyContent: 'center',
+							alignItems: 'center',
+						}}>
+						<View style={styles.circle}>
+							<IconButton
+								mode='contained'
+								containerColor={colors.secondary}
+								iconColor={colors.textSecondary}
+								icon='bluetooth'
+								size={105}
+								onPress={handleScan}
+							/>
+						</View>
+					</View>
+				)}
+
+				<AvailableDevicesModal
+					ref={modalRef}
+					devices={devices}
+					onSelectDevice={handleSelectDevice}
+				/>
 			</View>
 		</SafeAreaView>
 	);
