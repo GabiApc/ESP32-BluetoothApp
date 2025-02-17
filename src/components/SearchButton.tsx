@@ -66,13 +66,13 @@ const SearchButton = () => {
 	React.useEffect(() => {
 		// Pulsarea razelor
 		outerRadius.value = withRepeat(
-			withTiming(120, { duration: 2000 }),
+			withTiming(120, { duration: 1500 }),
 			-1,
 			true
 		);
 
 		middleRadius.value = withRepeat(
-			withTiming(110, { duration: 2000 }),
+			withTiming(110, { duration: 1500 }),
 			-1,
 			true
 		);

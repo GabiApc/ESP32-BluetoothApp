@@ -22,7 +22,13 @@ const HomeScreen = () => {
 	const theme = useTheme();
 	const colors = theme.colors;
 
-	const { isScanning, peripherals, startScan } = useBluetooth();
+	const {
+		isScanning,
+		peripherals,
+		startScan,
+		connectPeripheral,
+		disconnectPeripheral,
+	} = useBluetooth();
 
 	const modalRef = useRef<SwipeableModalRef>(null);
 	const [devices, setDevices] = useState<Peripheral[]>([]);
@@ -32,15 +38,32 @@ const HomeScreen = () => {
 		setTimeout(() => {
 			setDevices(Array.from(peripherals.values())); // Salvăm dispozitivele în state
 			modalRef.current?.show();
-		}, 4000); // Afișăm modalul după scanare
+		}, 5000); // Afișăm modalul după scanare
 	};
 
 	const handleSelectDevice = (device: Peripheral) => {
 		Alert.alert(
 			'Dispozitiv selectat',
-			`Ai selectat ${device.name || 'Unknown Device'}`
+			`Ce acțiune dorești să efectuezi pentru ${
+				device.name || 'Unknown Device'
+			}?`,
+			[
+				{
+					text: 'Anulează',
+					style: 'cancel',
+				},
+				device.connected
+					? {
+							text: 'Deconectează-te',
+							onPress: () => disconnectPeripheral(device), // Deconectează dispozitivul
+					  }
+					: {
+							text: 'Conectează-te',
+							onPress: () => connectPeripheral(device), // Conectează dispozitivul
+					  },
+			]
 		);
-		modalRef.current?.hide();
+		modalRef.current?.hide(); // Ascunde modalul după selecție
 	};
 
 	const styles = StyleSheet.create({

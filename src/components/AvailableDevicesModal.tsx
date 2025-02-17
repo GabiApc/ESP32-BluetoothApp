@@ -49,7 +49,7 @@ const AvailableDevicesModal = forwardRef<
 		modalTitle: {
 			fontSize: theme.fontSizes.large,
 			color: 'white',
-			marginBottom: 10,
+
 			fontFamily: theme.fontFamilies.black,
 			alignSelf: 'flex-start',
 		},
@@ -57,14 +57,14 @@ const AvailableDevicesModal = forwardRef<
 			width: '100%',
 			height: 2,
 			backgroundColor: '#A3D2FC', // Linie sub titlu
-			marginBottom: 15,
+			marginBottom: 10,
 		},
 		subTitle: {
 			fontSize: theme.fontSizes.medium,
 			color: 'white',
 			alignSelf: 'flex-start',
 			marginBottom: 10,
-			// marginTop: 20,
+			marginTop: 20,
 			fontFamily: theme.fontFamilies.medium,
 		},
 		deviceItem: {
@@ -97,7 +97,9 @@ const AvailableDevicesModal = forwardRef<
 	});
 
 	return (
-		<SwipeModal ref={modalRef}>
+		<SwipeModal
+			ref={modalRef}
+			barContainerStyle={{ backgroundColor: colors.secondary, height: 15 }}>
 			<View style={styles.modalContainer}>
 				<Text style={styles.modalTitle}>Selectează dispozitiv</Text>
 				<View style={styles.divider} />
@@ -106,14 +108,14 @@ const AvailableDevicesModal = forwardRef<
 
 				{devices.length > 0 ? (
 					<FlatList
-						data={devices}
+						data={devices.filter((device) => device.name)} // Filtrăm dispozitivele care au `name`
 						keyExtractor={(item) => item.id}
 						renderItem={({ item }) => (
 							<Pressable
 								style={styles.deviceItem}
 								onPress={() => onSelectDevice(item)}>
 								<Text style={styles.deviceName}>
-									{item.name || 'Unknown Device'}
+									{item.name} {/* Deoarece filtrăm, știm că `name` există */}
 								</Text>
 								<View style={styles.iconContainer}>
 									<Ionicons
