@@ -9,9 +9,10 @@ This project is an Bluetooth app what is uset to communicate with a esp32 board.
 - Send and receive data  (in progress)
 - Easy-to-use interface 
 
-## Design
+## 🎨 Design Preview
+[🔗 See design in Figma](https://www.figma.com/design/O4C1V2rX2aISvzGsVoJjkp/ESP32--lora-Gateway-app?node-id=0-1&t=ejmhQKLbvJFQsnbf-1
+)
 
-- https://www.figma.com/design/O4C1V2rX2aISvzGsVoJjkp/ESP32--lora-Gateway-app?node-id=0-1&t=ejmhQKLbvJFQsnbf-1
 
 ## Requirements
 
